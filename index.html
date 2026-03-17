@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script src="https://unpkg.com/html5-qrcode"></script>
+		<style>
+			body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f4f4; }
+			#reader { width: 100%; max-width: 400px; margin: auto; background: white; border-radius: 8px; }
+			.card { background: white; padding: 20px; border-radius: 12px; margin-top: 20px; display: none; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+			.btn { background: #007bff; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-size: 16px; margin: 10px; width: 80%; }
+		</style>
+	</head>
+	<body>
+		<h2>商品スキャナー</h2>
+		<div id="start-area">
+			<button class="btn" onclick="startScanner()">スキャン開始</button>
+		</div>
+		<div id="reader"></div>
+		
+		<div id="result-card" class="card">
+			<p id="res-brand" style="color:#666; font-size:12px;"></p>
+			<h3 id="res-name"></h3>
+			<p id="res-price" style="color:red; font-weight:bold;"></p>
+			<div id="res-link"></div>
+			<button class="btn" style="background:#666;" onclick="location.reload()">次のスキャン</button>
+		</div>
+		
+		<script>
+			const GAS_URL = "https://script.google.com/a/macros/17.media/s/AKfycbxbCnMFq1jLkPWniQGkZxvdYzPgw_W171xzF8Lgltzr9Ie7McGFANEMWBA-M_GTLuBL/exec";
+			const html5QrCode = new Html5Qrcode("reader");
+			
+			function startScanner() {
+				document.getElementById('start-area').style.display = 'none';
+				html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
+					(decodedText) => {
+						html5QrCode.stop().then(() => fetchInfo(decodedText));
+					}
+				).catch(err => alert("カメラエラー: " + err));
+			}
+			
+			function fetchInfo(code) {
+				// GASにデータを問い合わせる
+				fetch(`${GAS_URL}?code=${code}`)
+				.then(res => res.json())
+				.then(data => {
+						const card = document.getElementById('result-card');
+						card.style.display = 'block';
+						if (data) {
+							document.getElementById('res-brand').innerText = data.brand || "";
+							document.getElementById('res-name').innerText = data.name;
+							document.getElementById('res-price').innerText = "¥" + Number(data.price).toLocaleString();
+							document.getElementById('res-link').innerHTML = data.url ? `<a href="${data.url}" target="_blank">商品サイトへ</a>` : "";
+						} else {
+							document.getElementById('res-name').innerText = "未登録: " + code;
+						}
+				}).catch(err => alert("通信エラー: " + err));
+			}
+		</script>
+	</body>
+</html>
